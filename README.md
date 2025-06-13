@@ -510,6 +510,24 @@ OPENAI_API_KEY=your-openai-key    # Enables O3, O3-mini
 - **`o3-mini`**: Balanced speed/quality
 - **Custom models**: via OpenRouter or local APIs (Ollama, vLLM, etc.)
 
+### Language Configuration
+
+Control the language of AI responses via the `LOCALE` environment variable:
+
+**Set in your .env file:**
+```bash
+# Examples:
+LOCALE=zh-TW    # Traditional Chinese
+LOCALE=zh-CN    # Simplified Chinese
+LOCALE=ja-JP    # Japanese
+LOCALE=ko-KR    # Korean
+LOCALE=es-ES    # Spanish
+LOCALE=fr-FR    # French
+# Leave empty for default responses
+```
+
+When set, all AI tools will respond in the specified language while maintaining their analytical capabilities.
+
 For detailed configuration options, see the [Advanced Usage Guide](docs/advanced-usage.md).
 
 ## License

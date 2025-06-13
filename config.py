@@ -81,6 +81,12 @@ DEFAULT_THINKING_MODE_THINKDEEP = os.getenv("DEFAULT_THINKING_MODE_THINKDEEP", "
 # as files to bypass MCP's token constraints.
 MCP_PROMPT_SIZE_LIMIT = 50_000  # 50K characters
 
+# Language configuration
+# LOCALE: Language setting for AI responses
+# If set, adds language instruction to prompts (e.g., "zh-TW", "en-US")
+# Leave empty for no language instruction
+LOCALE = os.getenv("LOCALE", "")
+
 # Threading configuration
 # Simple Redis-based conversation threading for stateless MCP environment
 # Set REDIS_URL environment variable to connect to your Redis instance

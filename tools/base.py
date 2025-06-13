@@ -302,6 +302,21 @@ class BaseTool(ABC):
         """
         return "medium"  # Default to medium thinking for better reasoning
 
+    def get_language_instruction(self) -> str:
+        """
+        Generate language instruction based on LOCALE configuration.
+        
+        Returns:
+            str: Language instruction to prepend to prompt, or empty string if no locale set
+        """
+        from config import LOCALE
+        
+        if not LOCALE or not LOCALE.strip():
+            return ""
+        
+        # Simple language instruction
+        return f"Always speak in {LOCALE.strip()}.\n\n"
+
     def get_conversation_embedded_files(self, continuation_id: Optional[str]) -> list[str]:
         """
         Get list of files already embedded in conversation history.
@@ -931,7 +946,9 @@ When recommending searches, be specific about what information you need and why 
                 logger.warning(warning)
 
             # Get system prompt for this tool
-            system_prompt = self.get_system_prompt()
+            base_system_prompt = self.get_system_prompt()
+            language_instruction = self.get_language_instruction()
+            system_prompt = language_instruction + base_system_prompt
 
             # Generate AI response using the provider
             logger.info(f"Sending request to {provider.get_provider_type().value} API for {self.name}")
