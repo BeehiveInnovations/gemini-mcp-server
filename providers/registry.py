@@ -117,6 +117,7 @@ class ModelProviderRegistry:
         PROVIDER_PRIORITY_ORDER = [
             ProviderType.GOOGLE,  # Direct Gemini access
             ProviderType.OPENAI,  # Direct OpenAI access
+            ProviderType.AZURE_OPENAI,  # Azure OpenAI access
             ProviderType.CUSTOM,  # Local/self-hosted models
             ProviderType.OPENROUTER,  # Catch-all for cloud models
         ]
@@ -230,6 +231,7 @@ class ModelProviderRegistry:
         key_mapping = {
             ProviderType.GOOGLE: "GEMINI_API_KEY",
             ProviderType.OPENAI: "OPENAI_API_KEY",
+            ProviderType.AZURE_OPENAI: "AZURE_OPENAI_API_KEY",
             ProviderType.OPENROUTER: "OPENROUTER_API_KEY",
             ProviderType.CUSTOM: "CUSTOM_API_KEY",  # Can be empty for providers that don't need auth
         }
@@ -263,18 +265,25 @@ class ModelProviderRegistry:
 
         # Group by provider
         openai_models = [m for m, p in available_models.items() if p == ProviderType.OPENAI]
+        azure_openai_models = [m for m, p in available_models.items() if p == ProviderType.AZURE_OPENAI]
         gemini_models = [m for m, p in available_models.items() if p == ProviderType.GOOGLE]
 
         openai_available = bool(openai_models)
+        azure_openai_available = bool(azure_openai_models)
         gemini_available = bool(gemini_models)
 
         if tool_category == ToolModelCategory.EXTENDED_REASONING:
             # Prefer thinking-capable models for deep reasoning tools
             if openai_available and "o3" in openai_models:
                 return "o3"  # O3 for deep reasoning
+            elif azure_openai_available and "o3" in azure_openai_models:
+                return "o3"  # O3 for deep reasoning (Azure)
             elif openai_available and openai_models:
                 # Fall back to any available OpenAI model
                 return openai_models[0]
+            elif azure_openai_available and azure_openai_models:
+                # Fall back to any available Azure OpenAI model
+                return azure_openai_models[0]
             elif gemini_available and any("pro" in m for m in gemini_models):
                 # Find the pro model (handles full names)
                 return next(m for m in gemini_models if "pro" in m)
@@ -293,11 +302,18 @@ class ModelProviderRegistry:
             # Prefer fast, cost-efficient models
             if openai_available and "o4-mini" in openai_models:
                 return "o4-mini"  # Latest, fast and efficient
+            elif azure_openai_available and "o4-mini" in azure_openai_models:
+                return "o4-mini"  # Latest, fast and efficient (Azure)
             elif openai_available and "o3-mini" in openai_models:
                 return "o3-mini"  # Second choice
+            elif azure_openai_available and "o3-mini" in azure_openai_models:
+                return "o3-mini"  # Second choice (Azure)
             elif openai_available and openai_models:
                 # Fall back to any available OpenAI model
                 return openai_models[0]
+            elif azure_openai_available and azure_openai_models:
+                # Fall back to any available Azure OpenAI model
+                return azure_openai_models[0]
             elif gemini_available and any("flash" in m for m in gemini_models):
                 # Find the flash model (handles full names)
                 return next(m for m in gemini_models if "flash" in m)
@@ -311,10 +327,16 @@ class ModelProviderRegistry:
         # BALANCED or no category specified - use existing balanced logic
         if openai_available and "o4-mini" in openai_models:
             return "o4-mini"  # Latest balanced performance/cost
+        elif azure_openai_available and "o4-mini" in azure_openai_models:
+            return "o4-mini"  # Latest balanced performance/cost (Azure)
         elif openai_available and "o3-mini" in openai_models:
             return "o3-mini"  # Second choice
+        elif azure_openai_available and "o3-mini" in azure_openai_models:
+            return "o3-mini"  # Second choice (Azure)
         elif openai_available and openai_models:
             return openai_models[0]
+        elif azure_openai_available and azure_openai_models:
+            return azure_openai_models[0]
         elif gemini_available and any("flash" in m for m in gemini_models):
             return next(m for m in gemini_models if "flash" in m)
         elif gemini_available and gemini_models:
