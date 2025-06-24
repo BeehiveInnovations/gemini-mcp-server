@@ -195,13 +195,17 @@ class VertexAIProvider(GeminiModelProvider):
         return ProviderType.VERTEX_AI
 
     def _build_contents(self, parts: list[dict]) -> list[dict]:
-        """Build contents structure for Vertex AI - requires role."""
+        """Build contents structure for Vertex AI - requires role.
+        Subclasses can modify the structure as needed.
+        """
         return [{"role": "user", "parts": parts}]
 
     def _build_response(
         self, response, model_name: str, thinking_mode: str, capabilities, usage: dict
     ) -> ModelResponse:
-        """Build response object for Vertex AI."""
+        """Build response object for Vertex AI.
+        Subclasses can customize the response object as needed.
+        """
         return ModelResponse(
             content=response.text,
             usage=usage,
