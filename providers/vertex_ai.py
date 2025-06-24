@@ -6,7 +6,7 @@ import google.auth
 import google.auth.exceptions
 import google.genai as genai
 
-from .base import ModelCapabilities, ModelResponse, ProviderType
+from .base import ModelCapabilities, ModelResponse, ProviderType, create_temperature_constraint
 from .gemini import GeminiModelProvider
 
 logger = logging.getLogger(__name__)
@@ -18,41 +18,64 @@ class VertexAIProvider(GeminiModelProvider):
     # Inherit thinking budgets from parent
     THINKING_BUDGETS = GeminiModelProvider.THINKING_BUDGETS
 
-    # Vertex AI specific model configurations and aliases
+    # Vertex AI specific model configurations
     SUPPORTED_MODELS = {
         # Inherit base Gemini models from parent class
         **GeminiModelProvider.SUPPORTED_MODELS,
-        # Add Vertex AI specific models and aliases
-        "gemini-2.5-flash-lite-preview-06-17": {
-            "context_window": 1_048_576,  # 1M tokens
-            "supports_extended_thinking": True,
-            "max_thinking_tokens": 24576,  # Flash 2.5 thinking budget limit
-            "supports_images": True,  # Vision capability
-            "max_image_size_mb": 20.0,  # Conservative 20MB limit for reliability
-        },
-        "gemini-2.5-pro-preview-06-05": {
-            "context_window": 1_048_576,  # 1M tokens
-            "supports_extended_thinking": True,
-            "max_thinking_tokens": 32768,  # Pro 2.5 thinking budget limit
-            "supports_images": True,  # Vision capability
-            "max_image_size_mb": 32.0,  # Higher limit for Pro model
-        },
-        "gemini-2.0-flash": {
-            "context_window": 1_048_576,  # 1M tokens
-            "supports_extended_thinking": False,
-            "supports_images": True,
-            "max_image_size_mb": 20.0,
-        },
-        # Vertex AI convenient aliases
-        "vertex-pro": "gemini-2.5-pro",
-        "vertex-lite": "gemini-2.5-flash-lite-preview-06-17",
-        "vertex-flash": "gemini-2.5-flash",
-        "vertex-2.5-pro": "gemini-2.5-pro",
-        "vertex-2.5-flash": "gemini-2.5-flash",
-        "vertex-2.5-flash-lite": "gemini-2.5-flash-lite-preview-06-17",
-        "vertex-2.0-flash": "gemini-2.0-flash",
-        # Direct model name aliases
-        "gemini-2.5-flash-lite": "gemini-2.5-flash-lite-preview-06-17",
+        # Add Vertex AI specific models using ModelCapabilities
+        "gemini-2.5-flash-lite-preview-06-17": ModelCapabilities(
+            provider=ProviderType.VERTEX_AI,
+            model_name="gemini-2.5-flash-lite-preview-06-17",
+            friendly_name="Vertex AI",
+            context_window=1_048_576,  # 1M tokens
+            max_output_tokens=65_536,
+            supports_extended_thinking=True,
+            supports_system_prompts=True,
+            supports_streaming=True,
+            supports_function_calling=True,
+            supports_json_mode=True,
+            supports_images=True,  # Vision capability
+            max_image_size_mb=20.0,  # Conservative 20MB limit for reliability
+            supports_temperature=True,
+            temperature_constraint=create_temperature_constraint("range"),
+            max_thinking_tokens=24576,  # Flash 2.5 thinking budget limit
+            description="Gemini 2.5 Flash Lite (Preview) - Vertex AI deployment",
+        ),
+        "gemini-2.5-pro-preview-06-05": ModelCapabilities(
+            provider=ProviderType.VERTEX_AI,
+            model_name="gemini-2.5-pro-preview-06-05",
+            friendly_name="Vertex AI",
+            context_window=1_048_576,  # 1M tokens
+            max_output_tokens=65_536,
+            supports_extended_thinking=True,
+            supports_system_prompts=True,
+            supports_streaming=True,
+            supports_function_calling=True,
+            supports_json_mode=True,
+            supports_images=True,  # Vision capability
+            max_image_size_mb=32.0,  # Higher limit for Pro model
+            supports_temperature=True,
+            temperature_constraint=create_temperature_constraint("range"),
+            max_thinking_tokens=32768,  # Pro 2.5 thinking budget limit
+            description="Gemini 2.5 Pro (Preview) - Vertex AI deployment",
+        ),
+        "gemini-2.0-flash": ModelCapabilities(
+            provider=ProviderType.VERTEX_AI,
+            model_name="gemini-2.0-flash",
+            friendly_name="Vertex AI",
+            context_window=1_048_576,  # 1M tokens
+            max_output_tokens=65_536,
+            supports_extended_thinking=False,
+            supports_system_prompts=True,
+            supports_streaming=True,
+            supports_function_calling=True,
+            supports_json_mode=True,
+            supports_images=True,
+            max_image_size_mb=20.0,
+            supports_temperature=True,
+            temperature_constraint=create_temperature_constraint("range"),
+            description="Gemini 2.0 Flash - Vertex AI deployment",
+        ),
     }
 
     def __init__(self, project_id: str, region: str = "us-central1", **kwargs):
@@ -100,17 +123,58 @@ class VertexAIProvider(GeminiModelProvider):
             )
         return self._client
 
+    def get_all_model_aliases(self) -> dict[str, list[str]]:
+        """Get all model aliases for Vertex AI provider.
+
+        This includes both inherited Gemini aliases and Vertex-specific aliases.
+
+        Returns:
+            Dictionary mapping model names to their list of aliases
+        """
+        # Get base aliases from parent class (Gemini)
+        aliases = super().get_all_model_aliases()
+
+        # Add Vertex AI specific aliases from SUPPORTED_MODELS
+        vertex_aliases = {
+            "gemini-2.5-pro": ["vertex-pro", "vertex-2.5-pro"],
+            "gemini-2.5-flash": ["vertex-flash", "vertex-2.5-flash"],
+            "gemini-2.5-flash-lite-preview-06-17": ["vertex-lite", "vertex-2.5-flash-lite"],
+            "gemini-2.0-flash": ["vertex-2.0-flash"],
+        }
+
+        # Merge with existing aliases
+        for model_name, vertex_alias_list in vertex_aliases.items():
+            if model_name in aliases:
+                aliases[model_name].extend(vertex_alias_list)
+            else:
+                aliases[model_name] = vertex_alias_list
+
+        # Handle direct model name aliases
+        aliases["gemini-2.5-flash-lite-preview-06-17"] = aliases.get("gemini-2.5-flash-lite-preview-06-17", []) + [
+            "gemini-2.5-flash-lite"
+        ]
+
+        return aliases
+
     def get_capabilities(self, model_name: str) -> ModelCapabilities:
         """Get capabilities for a specific Vertex AI model."""
-        # Get capabilities from parent class
-        capabilities = super().get_capabilities(model_name)
+        # Resolve model name first
+        resolved_name = self._resolve_model_name(model_name)
 
-        # Override provider type and friendly name for Vertex AI
+        # If we have a Vertex-specific model in our SUPPORTED_MODELS, use it directly
+        if resolved_name in self.SUPPORTED_MODELS and resolved_name not in GeminiModelProvider.SUPPORTED_MODELS:
+            return self.SUPPORTED_MODELS[resolved_name]
+
+        # Otherwise, get capabilities from parent class and override provider info
+        capabilities = super().get_capabilities(resolved_name)
+
+        # Override provider type and friendly name for inherited Gemini models
         return ModelCapabilities(
             provider=ProviderType.VERTEX_AI,
             model_name=capabilities.model_name,
             friendly_name="Vertex AI",
             context_window=capabilities.context_window,
+            max_output_tokens=capabilities.max_output_tokens,
             supports_extended_thinking=capabilities.supports_extended_thinking,
             supports_system_prompts=capabilities.supports_system_prompts,
             supports_streaming=capabilities.supports_streaming,
@@ -119,6 +183,11 @@ class VertexAIProvider(GeminiModelProvider):
             max_image_size_mb=capabilities.max_image_size_mb,
             supports_temperature=capabilities.supports_temperature,
             temperature_constraint=capabilities.temperature_constraint,
+            description=capabilities.description,
+            aliases=capabilities.aliases,
+            supports_json_mode=capabilities.supports_json_mode,
+            max_thinking_tokens=capabilities.max_thinking_tokens,
+            is_custom=capabilities.is_custom,
         )
 
     def get_provider_type(self) -> ProviderType:
