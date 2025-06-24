@@ -954,21 +954,15 @@ validate_api_keys() {
     
     # Check Vertex AI configuration (both project ID and region must be set together)
     local vertex_project_id="${VERTEX_PROJECT_ID:-}"
-    local vertex_region="${VERTEX_REGION:-}"
+    local vertex_region="${VERTEX_REGION:-us-central1}"
     local vertex_project_placeholder="your_vertex_project_id_here"
-    local vertex_region_placeholder="us-central1"
     
     if [[ -n "$vertex_project_id" ]] && [[ "$vertex_project_id" != "$vertex_project_placeholder" ]]; then
-        if [[ -n "$vertex_region" ]] && [[ "$vertex_region" != "$vertex_region_placeholder" ]]; then
-            print_success "VERTEX_PROJECT_ID and VERTEX_REGION configured"
-            has_key=true
-        else
-            print_warning "VERTEX_PROJECT_ID set but VERTEX_REGION not configured"
-            echo "  For Vertex AI, both VERTEX_PROJECT_ID and VERTEX_REGION must be set" >&2
-        fi
-    elif [[ -n "$vertex_region" ]] && [[ "$vertex_region" != "$vertex_region_placeholder" ]]; then
+        print_success "VERTEX_PROJECT_ID configured (using region: $vertex_region)"
+        has_key=true
+    elif [[ -n "$vertex_region" ]] && [[ "$vertex_region" != "us-central1" ]]; then
         print_warning "VERTEX_REGION set but VERTEX_PROJECT_ID not configured"
-        echo "  For Vertex AI, both VERTEX_PROJECT_ID and VERTEX_REGION must be set" >&2
+        echo "  For Vertex AI, VERTEX_PROJECT_ID must be set" >&2
     fi
     
     # Check custom API URL

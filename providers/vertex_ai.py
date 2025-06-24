@@ -1,10 +1,12 @@
 """Google Vertex AI model provider implementation."""
 
+import dataclasses
 import logging
 
 import google.auth
 import google.auth.exceptions
 import google.genai as genai
+import google.genai.types as genai_types
 
 from .base import ModelCapabilities, ModelResponse, ProviderType, create_temperature_constraint
 from .gemini import GeminiModelProvider
@@ -169,25 +171,10 @@ class VertexAIProvider(GeminiModelProvider):
         capabilities = super().get_capabilities(resolved_name)
 
         # Override provider type and friendly name for inherited Gemini models
-        return ModelCapabilities(
+        return dataclasses.replace(
+            capabilities,
             provider=ProviderType.VERTEX_AI,
-            model_name=capabilities.model_name,
             friendly_name="Vertex AI",
-            context_window=capabilities.context_window,
-            max_output_tokens=capabilities.max_output_tokens,
-            supports_extended_thinking=capabilities.supports_extended_thinking,
-            supports_system_prompts=capabilities.supports_system_prompts,
-            supports_streaming=capabilities.supports_streaming,
-            supports_function_calling=capabilities.supports_function_calling,
-            supports_images=capabilities.supports_images,
-            max_image_size_mb=capabilities.max_image_size_mb,
-            supports_temperature=capabilities.supports_temperature,
-            temperature_constraint=capabilities.temperature_constraint,
-            description=capabilities.description,
-            aliases=capabilities.aliases,
-            supports_json_mode=capabilities.supports_json_mode,
-            max_thinking_tokens=capabilities.max_thinking_tokens,
-            is_custom=capabilities.is_custom,
         )
 
     def get_provider_type(self) -> ProviderType:
@@ -201,7 +188,12 @@ class VertexAIProvider(GeminiModelProvider):
         return [{"role": "user", "parts": parts}]
 
     def _build_response(
-        self, response, model_name: str, thinking_mode: str, capabilities, usage: dict
+        self,
+        response: genai_types.GenerateContentResponse,
+        model_name: str,
+        thinking_mode: str,
+        capabilities: ModelCapabilities,
+        usage: dict,
     ) -> ModelResponse:
         """Build response object for Vertex AI.
         Subclasses can customize the response object as needed.
