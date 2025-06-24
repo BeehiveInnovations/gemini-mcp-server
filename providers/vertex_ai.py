@@ -97,11 +97,13 @@ class VertexAIProvider(GeminiModelProvider):
         """Lazy initialization of Google credentials."""
         if self._credentials is None:
             try:
-                self._credentials, _ = google.auth.default(scopes=["https://www.googleapis.com/auth/cloud-platform"])
+                self._credentials, _ = google.auth.default(
+                    scopes=["https://www.googleapis.com/auth/generative-language"]
+                )
             except google.auth.exceptions.DefaultCredentialsError as e:
                 logger.error(f"Failed to initialize Google credentials (DefaultCredentialsError): {e}")
                 raise ValueError(
-                    "Could not initialize Google Cloud credentials. "
+                    f"Could not initialize Google Cloud credentials: {e}. "
                     "Please run 'gcloud auth application-default login' or set "
                     "GOOGLE_APPLICATION_CREDENTIALS environment variable."
                 ) from e
@@ -182,8 +184,16 @@ class VertexAIProvider(GeminiModelProvider):
         return ProviderType.VERTEX_AI
 
     def _build_contents(self, parts: list[dict]) -> list[dict]:
-        """Build contents structure for Vertex AI - requires role.
-        Subclasses can modify the structure as needed.
+        """Build contents structure for Vertex AI API - requires role field.
+
+        Overrides parent class method to add required "role" field for Vertex AI.
+        This is a concrete implementation of the template method pattern.
+
+        Args:
+            parts: List of content parts (text, images, etc.)
+
+        Returns:
+            List of content dictionaries with required Vertex AI structure
         """
         return [{"role": "user", "parts": parts}]
 
@@ -193,10 +203,22 @@ class VertexAIProvider(GeminiModelProvider):
         model_name: str,
         thinking_mode: str,
         capabilities: ModelCapabilities,
-        usage: dict,
+        usage: dict[str, int],
     ) -> ModelResponse:
-        """Build response object for Vertex AI.
-        Subclasses can customize the response object as needed.
+        """Build response object for Vertex AI provider.
+
+        Overrides parent class method to customize response metadata for Vertex AI.
+        Includes Vertex AI specific information like project_id and region.
+
+        Args:
+            response: Vertex AI API response object
+            model_name: Name of the model used
+            thinking_mode: Thinking mode configuration
+            capabilities: Model capabilities object
+            usage: Token usage information dictionary
+
+        Returns:
+            ModelResponse object with Vertex AI specific metadata
         """
         return ModelResponse(
             content=response.text,

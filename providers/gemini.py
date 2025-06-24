@@ -426,16 +426,36 @@ class GeminiModelProvider(ModelProvider):
         return any(indicator in error_str for indicator in retryable_indicators)
 
     def _build_contents(self, parts: list[dict]) -> list[dict]:
-        """Build contents structure. Can be overridden by subclasses.
-        Subclasses can modify the structure as needed.
+        """Build contents structure for API request.
+
+        Template method that subclasses can override to customize the content structure.
+        For example, Vertex AI requires a "role" field while direct Gemini API does not.
+
+        Args:
+            parts: List of content parts (text, images, etc.)
+
+        Returns:
+            List of content dictionaries structured for the specific API
         """
         return [{"parts": parts}]
 
     def _build_response(
         self, response, model_name: str, thinking_mode: str, capabilities, usage: dict
     ) -> ModelResponse:
-        """Build response object. Can be overridden by subclasses.
-        Subclasses can customize the response object as needed.
+        """Build response object from API response.
+
+        Template method that subclasses can override to customize response formatting.
+        Subclasses can modify metadata, provider information, or other response details.
+
+        Args:
+            response: Raw API response object
+            model_name: Name of the model used
+            thinking_mode: Thinking mode configuration
+            capabilities: Model capabilities object
+            usage: Token usage information
+
+        Returns:
+            ModelResponse object with standardized format
         """
         return ModelResponse(
             content=response.text,
